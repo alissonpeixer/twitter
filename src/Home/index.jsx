@@ -108,7 +108,7 @@ export function Home({ loggedInUser }) {
   return (
     <>
       <TweetForm loggedInUser={loggedInUser} onSuccess={getData} />
-      <div>
+      <div className="flex flex-col-reverse">
         {data.length && data.map(tweet => (
           <Tweet key={tweet.id} name={tweet.user.name} username={tweet.user.username} avatar={avatar}>
             {tweet.text}
