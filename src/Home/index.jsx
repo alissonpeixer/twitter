@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { HeartIcon } from '@heroicons/react/outline'
-import { useFormik} from 'formik'
+import { useFormik } from 'formik'
 import axios from 'axios'
 import avatar from './avatar.png'
 
 const MAX_TWEET_CHAR = 140
+
 
 function TweetForm({ loggedInUser, onSuccess }) {
   const formik = useFormik({
@@ -12,8 +13,8 @@ function TweetForm({ loggedInUser, onSuccess }) {
       await axios({
         method: 'post',
         url: `${import.meta.env.VITE_API_HOST}/tweets`,
-        headers:{
-          'authorization': `Bearer ${loggedInUser.accessToken}`
+        headers: {
+          'authorization': `Bearer ${loggedInUser.token}`
         },
         data: {
           text: values.text
@@ -52,12 +53,12 @@ function TweetForm({ loggedInUser, onSuccess }) {
 
         <div className="flex justify-end items-center space-x-3">
           <span className="text-sm">
-            <span>{formik.values.text.length}</span> / <span className="text-birdBlue">{ MAX_TWEET_CHAR }</span>
+            <span>{formik.values.text.length}</span> / <span className="text-birdBlue">{MAX_TWEET_CHAR}</span>
           </span>
           <button
             type="submit"
             className="bg-birdBlue px-5 py-2 rounded-full disabled:opacity-50"
-            disabled={formik.values.text.length > MAX_TWEET_CHAR || formik.isSubmitting }
+            disabled={formik.values.text.length > MAX_TWEET_CHAR || formik.isSubmitting}
           >
             Tweet
           </button>
@@ -70,33 +71,31 @@ function TweetForm({ loggedInUser, onSuccess }) {
 function Tweet({ name, username, avatar, children }) {
   return (
     <div className="flex space-x-3 p-4 border-b border-silver">
-        <div>
-          <img src={avatar} />
-        </div>
-        <div className="space-y-1">
-            <span className="font-bold text-sm">{name}</span>{' '}
-            <span className="text-sm text-silver">@{username}</span>
+      <div>
+        <img src={avatar} />
+      </div>
+      <div className="space-y-1">
+        <span className="font-bold text-sm">{name}</span>{' '}
+        <span className="text-sm text-silver">@{username}</span>
 
-            <p>{children}</p>
 
-            <div className="flex space-x-1 text-silver text-sm items-center">
-              <HeartIcon className="w-6 stroke-1"/>
-              <span>1.2k</span>
-            </div>
-        </div>
+          <p>{children}</p>
+
+      </div>
+
     </div>
   )
 }
 
 
-export function Home({ loggedInUser }) {
+export function Home({ loggedInUser, tweetId }) {
   const [data, setData] = useState([])
 
 
   async function getData() {
     const res = await axios.get(`${import.meta.env.VITE_API_HOST}/tweets`, {
       headers: {
-        'authorization': `Bearer ${loggedInUser.accessToken}`
+        'authorization': `Bearer ${loggedInUser.token}`
       }
     })
     setData(res.data)
@@ -108,12 +107,17 @@ export function Home({ loggedInUser }) {
   return (
     <>
       <TweetForm loggedInUser={loggedInUser} onSuccess={getData} />
-      <div className="flex flex-col-reverse">
+      <div className='flex flex-col-reverse '>
         {data.length && data.map(tweet => (
-          <Tweet key={tweet.id} name={tweet.user.name} username={tweet.user.username} avatar={avatar}>
-            {tweet.text}
-          </Tweet>
+          <Tweet  key={tweet.id}  name={tweet.user.name}  username={tweet.user.username} avatar={avatar} >
+          {tweet.text}
+          <span className="flex space-x-1 text-silver text-sm items-center">
+            <HeartIcon className="w-6 stroke-1" />
+            <span>0</span>
+          </span>
+        </Tweet>
         ))}
+
       </div>
     </>
   )

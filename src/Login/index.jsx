@@ -12,7 +12,28 @@ const validationSchema = yup.object({
 })
 
 export function Login({ signInUser }) {
+    
 
+
+    function setUserInfo(res) {
+        const userToken = {
+            token: res.data.accessToken
+        }
+        const userInfo = {
+            id: res.data.id,
+            name: res.data.name,
+            username: res.data.username,
+            email: res.data.email
+        };
+        const jsonUser = JSON.stringify({
+            userInfo: userInfo,
+            userToken: userToken
+        });
+
+        localStorage.setItem('user',jsonUser);
+    
+    }
+    
     const formik = useFormik({
         onSubmit: async values => {
             const res = await axios.get(`${import.meta.env.VITE_API_HOST}/login`, {
@@ -20,9 +41,13 @@ export function Login({ signInUser }) {
                     username: values.email,
                     password: values.password
                 }
-            })
+            })  
 
-            signInUser(res.data)
+
+            setUserInfo(res);
+            signInUser(true);
+
+
         },
         initialValues: {
             email: '',
