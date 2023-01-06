@@ -153,29 +153,28 @@ function Tweet({ name, surname, username, avatar, children, likeId, likes }) {
 
 // front
 export function Home({ loggedInUser }) {
-  const [data, setData] = useState([]);
+  console.log(loggedInUser);
+  // const [data, setData] = useState([]);
+  // async function getData() {
+  //   const resPost = await axios
+  //     .get(`${import.meta.env.VITE_API_HOST}/post`, {
+  //       headers: {
+  //         authorization: `Bearer ${loggedInUser}`,
+  //       },
+  //     })
 
-  async function getData() {
-    const resPost = await axios
-      .get(`${import.meta.env.VITE_API_HOST}/post`, {
-        headers: {
-          authorization: `Bearer ${loggedInUser}`,
-        },
-      })
+  //     .catch(function (error) {
+  //       if (error.response.status === 401) {
+  //         localStorage.removeItem("user");
+  //         location.reload();
+  //       }
+  //     });
 
-      .catch(function (error) {
-        if (error.response.status === 401) {
-          localStorage.removeItem("user");
-          location.reload();
-        }
-      });
-
-    setData(resPost.data);
-  }
-  useEffect(() => {
-    getData();
-  }, []);
-
+  //   setData(resPost.data);
+  // }
+  // useEffect(() => {
+  //   getData();
+  // }, []);
   return (
     <>
       <head>

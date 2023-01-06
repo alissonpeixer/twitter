@@ -1,48 +1,18 @@
-import { useState } from 'react'
+import { Routes, Route } from "react-router-dom";
+import { useState } from "react";
+import { Login } from "./Login";
+import { Home } from "./Home";
 
-import { Home } from './Home'
-import { Login } from './Login'
-import { Signup } from './Signup'
-
-
-
-
-function userInfo() {
-    const userObjectInfo = localStorage.getItem('user');
-    const userInfo = JSON.parse(userObjectInfo);
-    var valide = true
-
-    if (userObjectInfo === null) {
-        return valide = false
-    }
-
- 
-
-    return{
-        infoUser: userInfo.userInfo,
-        token: userInfo.userInfo.token
-    }
-
-}
-
+import Session from "./modules/Section";
 
 export function App() {
-    const [user, setUser] = useState()
-    
-    if(userInfo()){
-
-        if (userInfo().token || user) {
-            return <Home loggedInUser={userInfo().token} />
-        }
-    }
-    
-
-
-    return window.location.pathname === '/'
-    ? <Login signInUser={setUser}/>
-    : <Signup signInUser={setUser}/>
-    
-
-
-
+  const [session, setSession] = useState({});
+  return (
+    <Session setSession={setSession}>
+      <Routes>
+        <Route path="/" element={<Login />} />
+        <Route path="/home" element={<Home session={session} />} />
+      </Routes>
+    </Session>
+  );
 }
