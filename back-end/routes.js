@@ -111,7 +111,7 @@ router.get("/login", async (ctx) => {
 
 router.post("/post", async (ctx) => {
   const [, userToken] = ctx.request.headers?.authorization?.split(" ") || [];
-
+  console.log(userToken);
   if (!userToken) {
     ctx.status = 403;
     ctx.body = "Token not found!";
@@ -127,26 +127,18 @@ router.post("/post", async (ctx) => {
     });
 
     if (!userInfo) {
-      ctx.status = 401;
-      ctx.body = "Usuario não encontado!";
+      ctx.status = 403;
+      ctx.body = "User not found!";
       return;
     }
-
-    const createLike = await prisma.PostLikes.create({
+    const post = await prisma.post.create({
       data: {
+        text: ctx.request.body.text,
         userId: userInfo.id,
       },
     });
-
-    const createPost = await prisma.Post.create({
-      data: {
-        userId: createLike.userId,
-        text: ctx.request.body.text,
-        likeID: createLike.likeId,
-      },
-    });
-
-    ctx.body = createPost;
+    ctx.status = 201;
+    ctx.body = post;
   } catch (e) {
     console.log(e);
 
@@ -167,11 +159,17 @@ router.get("/post", async (ctx) => {
 
     const posts = await prisma.Post.findMany({
       include: {
-        user: true,
-        postlikes: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            surname: true,
+          },
+        },
+        like: true,
       },
     });
-
+    console.log(posts);
     ctx.body = posts;
   } catch (e) {
     console.log(e);
@@ -180,10 +178,10 @@ router.get("/post", async (ctx) => {
 
     return;
 
-    // if(e === 'invalid token'){
-    //   ctx.status = 403;
-    //   ctx.body = 'Token de acesso invalido!'
-    // }
+    if (e === "invalid token") {
+      ctx.status = 403;
+      ctx.body = "Token de acesso invalido!";
+    }
   }
 });
 
@@ -196,28 +194,88 @@ router.post("/like", async (ctx) => {
   }
 
   try {
-    jwt.verify(userToken, process.env.JWT_SECRET);
-
-    const isLiked = await prisma.isLiked.create({
-      data: {
-        isLiked: ctx.request.body.userlikeId,
-        likeID: ctx.request.body.likeId,
+    const user = jwt.verify(userToken, process.env.JWT_SECRET);
+    if (!user) {
+      ctx.status = 403;
+      ctx.body = "Token de acesso invalido!";
+      return;
+    }
+    const [isLiked] = await prisma.like.findMany({
+      where: {
+        postId: ctx.request.body.postId,
+        userId: user.data,
       },
     });
 
-    const getLikes = await prisma.PostLikes.findUnique({
-      where: { likeId: ctx.request.body.likeId },
-    });
+    if (!isLiked) {
+      console.log("DEU LIKE");
+      await prisma.like.create({
+        data: {
+          postId: ctx.request.body.postId,
+          userId: user.data,
+        },
+      });
 
-    const like = await prisma.PostLikes.update({
-      where: { likeId: ctx.request.body.likeId },
-      data: {
-        likes: getLikes.likes + 1,
+      ctx.status = 200;
+      ctx.body = "Like";
+      return;
+    } else {
+      console.log("REMOVEU LIKE");
+      const res = await prisma.Like.delete({
+        where: {
+          id: isLiked.id,
+        },
+      });
+      console.log(res);
+
+      return;
+    }
+  } catch (e) {
+    console.log(e);
+  }
+});
+
+router.delete("/post/delete", async (ctx) => {
+  const [, userToken] = ctx.request.headers?.authorization?.split(" ") || [];
+
+  if (!userToken) {
+    ctx.status = 401;
+    return;
+  }
+
+  try {
+    const user = jwt.verify(userToken, process.env.JWT_SECRET);
+    if (!user) {
+      ctx.status = 403;
+      ctx.body = "Token de acesso invalido!";
+      return;
+    }
+    const [post] = await prisma.post.findMany({
+      where: {
+        id: ctx.request.body.postId,
+      },
+      include: {
+        like: true,
       },
     });
+    console.log(post);
+    if (!post) {
+      ctx.status = 404;
+      ctx.body = "Post not found!";
+      return;
+    }
 
+    const deleted = await prisma.Post.delete({
+      where: {
+        id: post.id,
+      },
+      select: {
+        like: true,
+      },
+    });
+    console.log(deleted);
     ctx.status = 200;
-    ctx.body = like;
+    ctx.body = deleted;
   } catch (e) {
     console.log(e);
   }

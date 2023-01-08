@@ -1,18 +1,33 @@
 import { Routes, Route } from "react-router-dom";
-import { useState } from "react";
-import { Login } from "./Login";
-import { Home } from "./Home";
+import { useLocalStorage } from "react-use";
+import { useLocation, useNavigate, useRoutes } from "react-router-dom";
 
-import Session from "./modules/Section";
+import { SignIn } from "./SignIn";
+import { Home } from "./Home";
+import { Signup } from "./Signup";
 
 export function App() {
-  const [session, setSession] = useState({});
+  const [value, setValue, remove] = useLocalStorage("user", false);
+  const navigate = useNavigate();
+  let location = useLocation();
+
   return (
-    <Session setSession={setSession}>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/home" element={<Home session={session} />} />
-      </Routes>
-    </Session>
+    <Routes>
+      {["/home", "/"].map(
+        (path, id) =>
+          value && (
+            <Route
+              key={id}
+              element={<Home userToken={value.token} userId={value.id} />}
+              path={path}
+            />
+          )
+      )}
+
+      {!value && <Route path="/" element={<SignIn setValue={setValue} />} />}
+      {!value && <Route path="/signup" element={<Signup />} />}
+
+      <Route path="/*" element={<div>Not Found</div>} />
+    </Routes>
   );
 }
