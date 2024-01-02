@@ -32,7 +32,7 @@ const logout = async () => {
 </script>
 
 <template>
-    <Menubar :model="items" v-if="user?.value && !route.path.includes('/signin')">
+    <Menubar :model="items" v-if="!route.path.includes('/signin')">
         <template #item="{ item, props, hasSubmenu, root }">
             <router-link v-if="item?.route && route.path !== item?.route" v-slot="{ href, navigate }" :to="item.route"
                 custom>

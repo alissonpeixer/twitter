@@ -21,6 +21,8 @@ const inputText = ref("");
 const currentLength = ref(0);
 const currentLoading = ref(false);
 
+const currentUser = ref(user.value);
+
 const confirm1 = (index) => {
     confirm.require({
         message: 'Realmente deseja remover o post?',
@@ -180,10 +182,11 @@ const logout = async () => {
             toast.add({ severity: 'success', summary: 'Logout', detail: "Deslogado", life: 3000 })
         })
 }
+console.log(currentUser?.value?.aud)
 </script>
 
 <template >
-    <section class="overflow-hidden max-h-[93%] flex flex-col" v-if="user.value">
+    <section class="overflow-hidden max-h-[93%] flex flex-col">
         <div :class="clsx(`transition-all  h-full container mx-auto w-auto flex items-center justify-center `, currentLoading ? 'fixed' : 'hidden')"
             style="z-index: 44;">
             <span class="text-2xl">
