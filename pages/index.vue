@@ -43,7 +43,7 @@ const post = async () => {
             const dados = {
                 body: inputText.value,
                 delet: false,
-                private: false,
+                show: true,
                 createdUserName: userName,
                 userAvatar: user.value.user_metadata.avatar_url || null
             }
