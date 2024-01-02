@@ -26,7 +26,7 @@ export default defineNuxtConfig({
   css: ["./primevue/resources/themes/lara-dark-green/theme.css",'@/assets/css/tailwind.css'],
   runtimeConfig: {
     public: {
-      baseUrl: process.env.BASE_URL || 'http://localhost:3000'
+      baseUrl: process.env.BASE_URL
     }
   },
   supabase: {
