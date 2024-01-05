@@ -1,29 +1,31 @@
-<script setup >
+<script setup lang="ts" >
+import type { Database } from '~~/types/database.types'
 import clsx from 'clsx';
+
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
 
 const toast = useToast();
 const confirm = useConfirm();
-const client = useSupabaseClient();
+const client = useSupabaseClient<Database>();
 const user = useSupabaseUser()
 
 const userName = user?.value?.user_metadata.preferred_username || user?.value?.user_metadata.name;
 
-let opcoes = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' };
-let formatoBrasileiro = new Intl.DateTimeFormat('pt-BR', opcoes);
+// let opcoes = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+// let formatoBrasileiro = new Intl.DateTimeFormat('pt-BR', opcoes);
 
-let count = ref(0);
+
 const maxLength = 150;
-const messages = ref([]);
-const dataPosts = ref();
+
+const dataPosts = ref<Post[]>();
 const inputText = ref("");
 const currentLength = ref(0);
-const currentLoading = ref(false);
+const currentLoading = ref(true);
 
 const currentUser = ref(user.value);
 
-const confirm1 = (index) => {
+const confirm1 = (index: string) => {
     confirm.require({
         message: 'Realmente deseja remover o post?',
         header: 'Remover',
@@ -41,11 +43,10 @@ const post = async () => {
             currentLoading.value = true;
 
             const dados = {
-                body: inputText.value,
-                delet: false,
-                show: true,
-                createdUserName: userName,
-                userAvatar: user.value.user_metadata.avatar_url || null
+                is_body: inputText.value,
+                is_public: true,
+                is_user_username: userName,
+                is_user_avatar: user?.value?.user_metadata.avatar_url || null
             }
 
             await client.from('posts')
@@ -67,19 +68,22 @@ const post = async () => {
             throw new Error('Validacão do post');
         }
     } catch (error) {
-        currentLoading.value = false;
-        toast.add({ severity: 'error', summary: 'Erro Post', detail: error.message, life: 3000 });
+        if(error instanceof Error)
+        {
+            currentLoading.value = false;
+            toast.add({ severity: 'error', summary: 'Erro Post', detail: error.message, life: 3000 });
+        }
     }
 };
 
-const like = async (index) => {
+const like = async (index: string) => {
     try {
         if (index) {
 
             currentLoading.value = true;
 
-            const currentLikes = dataPosts.value.find(({ id }) => id === index).likes;
-            const currentLike = currentLikes.find(({ user_id }) => user_id === user.value.id);
+            const currentLikes = dataPosts.value?.find(({ id }) => id === index)?.likes;
+            const currentLike = currentLikes?.find(({ is_user_id }) => is_user_id === user?.value?.id);
 
             if (!currentLike) {
 
@@ -119,8 +123,11 @@ const like = async (index) => {
         }
 
     } catch (error) {
-        currentLoading.value = false;
-        toast.add({ severity: 'error', summary: 'Erro Like', detail: error.message, life: 3000 });
+        if(error instanceof Error)
+        {
+            currentLoading.value = false;
+            toast.add({ severity: 'error', summary: 'Erro Like', detail: error.message, life: 3000 });
+        }
     }
 };
 
@@ -128,11 +135,11 @@ const handleEventCurrentLength = () => {
     currentLength.value = inputText.value.trim().length;
 }
 
-const deletPost = async (id) => {
-    if (!id) return
+const deletPost = async (index: string) => {
+    if (!index) return
     await client.from('posts')
         .update({ delet: true })
-        .match({ id: id })
+        .match({ id: index })
         .select()
         .then((ret) => {
             if (!ret.data) return
@@ -142,17 +149,17 @@ const deletPost = async (id) => {
         })
 }
 
-const hidenShowPost = async ({ id, show }) => {
+const hidenShowPost = async ({ id, is_public }:Post) => {
     if (!id) return
     await client.from('posts')
-        .update({ show: !show })
+        .update({ is_public: !is_public })
         .match({ id: id })
         .select()
         .then((ret) => {
             if (!ret.data) return
             syncData();
             currentLoading.value = false;
-            toast.add({ severity: 'info', summary: 'Post', detail: `Mudado para um post ${!show ? 'publicdo' : 'privado'}!`, life: 3000 });
+            toast.add({ severity: 'info', summary: 'Post', detail: `Mudado para um post ${!is_public ? 'publicdo' : 'privado'}!`, life: 3000 });
         })
 }
 
@@ -160,19 +167,13 @@ const hidenShowPost = async ({ id, show }) => {
 const syncData = async () => {
     await client.from('posts')
         .select('*,likes(*)')
-        .eq("delet", false)
-        .eq("show", true)
+        .eq("is_delet", false)
         .order('created_at')
-        .then((ret) => dataPosts.value = ret.data)
-}
+        .then((ret) => (dataPosts.value = ret.data || [], currentLoading.value = false, console.log(dataPosts)))
+}      
 
-watch(user, async () => {
-    await client.from('posts')
-        .select('*,likes(*)')
-        .eq("delet", false)
-        .eq("show", true)
-        .order('created_at')
-        .then((ret) => dataPosts.value = ret.data)
+watch(user,  () => {
+    syncData();
 }, { immediate: true })
 
 const logout = async () => {
@@ -219,45 +220,45 @@ const logout = async () => {
                     <Card>
                         <template #title>
                             <div class="flex gap-4 items-center">
-                                <Icon v-if="!item?.userAvatar" name="teenyicons:user-circle-outline" size="40" />
-                                <NuxtImg v-if="item?.userAvatar" :src=item.userAvatar width="40" height="40"
+                                <Icon v-if="!item?.is_user_avatar" name="teenyicons:user-circle-outline" size="40" />
+                                <NuxtImg v-if="item?.is_user_avatar" :src=item?.is_user_avatar width="40" height="40"
                                     class="rounded-full" />
-                                <span class="text-base">@{{ item?.createdUserName }}</span>
+                                <span class="text-base">@{{ item?.is_user_username }}</span>
                             </div>
                         </template>
                         <template #content>
                             <p class="m-0 text-pretty break-all">
-                                {{ item?.body }}
+                                {{ item?.is_body }}
                             </p>
                         </template>
                         <template #footer>
                             <div class="flex justify-between">
                                 <div class="flex gap-4 items-center justify-end">
                                     <div class="text-[10px]">
-                                        {{ item?.currentData }}
+                                        {{ item?.created_at }}
                                     </div>
                                 </div>
                                 <div class="flex gap-4 items-center justify-end">
                                     <div class="flex gap-2 items-center text-sm">
                                         {{ item?.likes.length }} Likes
                                     </div>
-                                    <Icon v-if="!item?.likes.find(({ user_id }) => user_id === user.id)"
+                                    <Icon v-if="!item?.likes.find(({ is_user_id }) => is_user_id === user?.id)"
                                         name="teenyicons:heart-outline" size="20"
                                         class="transition-all cursor-pointer hover:text-emerald-600"
                                         @click="like(item?.id)" />
-                                    <Icon v-if="item?.likes.find(({ user_id }) => user_id === user.id)"
+                                    <Icon v-if="item?.likes.find(({ is_user_id }) => is_user_id === user?.id)"
                                         name="teenyicons:heart-solid" size="20"
                                         class="transition-all cursor-pointer hover:text-emerald-600"
                                         @click="like(item?.id)" />
                                     <Icon name="mdi:trash-outline" size="24"
                                         class="transition-all cursor-pointer hover:text-red-600" @click="confirm1(item?.id)"
-                                        v-if="item?.user_id === user.id" />
+                                        v-if="item?.user_id === user?.id" />
                                     <Icon name="entypo:eye" size="24"
                                         class="transition-all cursor-pointer hover:text-green-600"
-                                        @click="hidenShowPost(item)" v-if="item?.show && item?.user_id === user.id" />
+                                        @click="hidenShowPost(item)" v-if="item?.is_public && item?.user_id === user?.id" />
                                     <Icon name="entypo:eye-with-line" size="24"
                                         class="transition-all cursor-pointer hover:text-red-600"
-                                        @click="hidenShowPost(item)" v-if="!item?.show && item?.user_id === user.id" />
+                                        @click="hidenShowPost(item)" v-if="!item?.is_public && item?.user_id === user?.id" />
                                 </div>
                             </div>
                         </template>

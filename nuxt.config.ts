@@ -21,7 +21,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      baseUrl: process.env.BASE_URL || 'http://127.0.0.1:3000'
+      baseUrl: process.env.BASE_URL || 'http://127.0.0.1'
     }
   },
 
