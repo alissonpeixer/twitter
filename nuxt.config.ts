@@ -6,6 +6,7 @@ export default defineNuxtConfig({
     'nuxt-icon',
     "@nuxt/image"
   ],
+  extends: ['nuxt-emoji'],
   primevue: {
     importPT: { as: 'Lara', from: __dirname+'/presets/lara/' },
     cssLayerOrder: 'tailwind-base, primevue,  tailwind-utilities',

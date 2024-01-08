@@ -9,13 +9,13 @@ const toast = useToast();
 
 const items = ref([
     {
-        label: 'Posts',
+        label: 'FEED',
         route: '/'
 
     },
     {
-        label: 'Perfil',
-        route: '/profile'
+        label: 'PERFIL',
+        route: '/user/profile'
 
     }
 ]);
@@ -43,8 +43,9 @@ const logout = async () => {
             </router-link>
         </template>
         <template #end>
-            <div class="flex align-items-center gap-5">
+            <div class="flex gap-5 items-center">
                 <Avatar :image=userProfile?.avatar_url shape="circle" class="w-[40px] h-[40px]" />
+                <h5>Olá, {{ userProfile?.full_name }}</h5>
                 <Button label="Sair" severity="danger" size="small" @click="logout" />
             </div>
         </template>

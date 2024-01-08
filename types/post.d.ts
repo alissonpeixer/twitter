@@ -1,4 +1,4 @@
-type  Post = {
+export type  Post = {
     id: string
     is_public?: boolean
     is_delet?: boolean

@@ -7,12 +7,23 @@ useSeoMeta({
   ogImage: 'https://media.discordapp.net/attachments/1191548186020548690/1191548198469238844/image.png',
   twitterCard: 'summary_large_image',
 })
+const nuxtApp = useNuxtApp();
+const loading = ref(false);
+nuxtApp.hook("page:start", () => {
+  loading.value = true;
+});
+nuxtApp.hook("page:finish", () => {
+  loading.value = false;
+});
 </script>
 <template>
   <main class="w-screen h-screen xl:p-4 container mx-auto overflow-hidden">
+    <NuxtLoadingIndicator />
     <Toast />
     <ConfirmDialog></ConfirmDialog>
     <AppHeader />
     <NuxtPage />
   </main>
 </template>
+
+

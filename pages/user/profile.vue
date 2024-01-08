@@ -1,18 +1,23 @@
 <script setup lang="ts" >
-import { format } from 'date-fns';
 import type { Database } from '~~/types/database.types'
 import type { Post } from '~~/types/post'
 import clsx from 'clsx';
-
+import { format } from 'date-fns';
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
 
 const toast = useToast();
 const confirm = useConfirm();
 const client = useSupabaseClient<Database>();
-const user = useSupabaseUser()
+const user = useSupabaseUser();
+const userProfile = ref(user?.value?.user_metadata);
+const visible = ref(false);
+const editingPostId = ref("");
 
-const userName = user?.value?.user_metadata.preferred_username || user?.value?.user_metadata.name;
+const { auth } = useSupabaseClient();
+
+// let opcoes = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+// let formatoBrasileiro = new Intl.DateTimeFormat('pt-BR', opcoes);
 
 
 const maxLength = 150;
@@ -22,7 +27,11 @@ const inputText = ref("");
 const currentLength = ref(0);
 const currentLoading = ref(true);
 
-const currentUser = ref(user.value);
+
+
+const handleEventCurrentLength = () => {
+    currentLength.value = inputText.value.trim().length;
+}
 
 const confirm1 = (index: string) => {
     confirm.require({
@@ -36,44 +45,7 @@ const confirm1 = (index: string) => {
     });
 };
 
-const post = async () => {
-    try {
-        if (inputText.value && inputText.value.length <= 150) {
-            currentLoading.value = true;
 
-            const dados = {
-                is_body: inputText.value,
-                is_public: true,
-                is_user_username: userName,
-                is_user_avatar: user?.value?.user_metadata.avatar_url || null
-            }
-
-            await client.from('posts')
-                .upsert({
-                    ...dados
-                })
-                .select()
-                .order('created_at')
-                .then(() => {
-                    syncData();
-                    toast.add({ severity: 'success', summary: 'Post', detail: 'Postado', life: 3000 });
-                    currentLoading.value = false;
-                })
-
-            inputText.value = "";
-            currentLength.value = 0;
-        }
-        else {
-            throw new Error('Validacão do post');
-        }
-    } catch (error) {
-        if(error instanceof Error)
-        {
-            currentLoading.value = false;
-            toast.add({ severity: 'error', summary: 'Erro Post', detail: error.message, life: 3000 });
-        }
-    }
-};
 
 const like = async (index: string) => {
     try {
@@ -130,10 +102,6 @@ const like = async (index: string) => {
     }
 };
 
-const handleEventCurrentLength = () => {
-    currentLength.value = inputText.value.trim().length;
-}
-
 const deletPost = async (index: string) => {
     if (!index) return
     await client.from('posts')
@@ -162,26 +130,61 @@ const hidenShowPost = async ({ id, is_public }:Post) => {
         })
 }
 
-
 const syncData = async () => {
     await client.from('posts')
         .select('*,likes(*)')
         .eq("is_delet", false)
-        .eq("is_public", true)
         .order('created_at')
-        .then((ret) => (dataPosts.value = ret.data || [], currentLoading.value = false, console.log(dataPosts)))
+        .then((ret) => (dataPosts.value = ret.data || [], currentLoading.value = false))
 }
+
+const editPost = async (index: string) => {
+    if(index)
+    {
+        const currentLikes = dataPosts.value?.find(({ id }) => id === index);
+
+        if (currentLikes) {
+            inputText.value = currentLikes?.is_body;
+            editingPostId.value = currentLikes?.id;
+            visible.value = true;
+        }
+    }
+};
+
+const saveEditPost = async (id: string) => {
+    console.log(id)
+    if(id)
+    {
+        await client.from('posts')
+        .update({ is_body: inputText.value })
+        .match({ id: id })
+        .select()
+        .then((ret) => {
+            if (!ret.data) return
+            syncData();
+            currentLoading.value = false;
+            toast.add({ severity: 'info', summary: 'Post', detail: `Post atualizado!`, life: 3000 });
+            visible.value = false;
+        })
+    }
+};
+
 
 watch(user,  () => {
     syncData();
 }, { immediate: true })
 
-
-
 </script>
 
 <template >
+
     <section class="overflow-hidden max-h-[93%] flex flex-col">
+        <Dialog v-model:visible="visible" modal header="Editar" :style="{ width: '50vw' }" :breakpoints="{ '1199px': '75vw', '575px': '90vw' }">
+            <Textarea name="text-post" v-model="inputText" rows="5" class="w-full pr-14 resize-none"
+                    placeholder="Que esta acontecendo..." @keyup="handleEventCurrentLength"
+                    @blur="handleEventCurrentLength" />
+            <Button class="mt-3 gap-3 items-center w-auto p-4" @click="saveEditPost(editingPostId)">Salvar</Button>
+        </Dialog>
         <div :class="clsx(`transition-all  h-full container mx-auto flex items-center justify-center `, currentLoading ? 'fixed' : 'hidden')"
             style="z-index: 44;">
             <span class="text-2xl">
@@ -189,31 +192,19 @@ watch(user,  () => {
                     class="transition-all cursor-pointer hover:text-emerald-600" />
             </span>
         </div>
-        <div :class="clsx(`transition-all blur-xl bg-stone-950/[0.7] h-full w-full `, currentLoading ? 'fixed' : 'hidden')"
-            style="z-index: 40;"></div>
-        <div>
-            <div class="relative mt-4" style="z-index: 1;">
-                <button @click="post"
-                    :class="clsx(`absolute bottom-0 right-0 mb-4 mr-4 bg-emerald-900 p-2 rounded-full w-10 h-10 flex items-center justify-center`, currentLength > 150 && 'opacity-50 cursor-not-allowed')"
-                    :disabled="currentLength > 150">
-                    <Icon name="teenyicons:send-solid" size="20"
-                        :class="clsx(`transition-all cursor-pointer hover:text-emerald-600`, currentLength > 150 && 'opacity-50 cursor-not-allowed hover:none')" />
-                        <NuxtEmoji  />
-                </button>
-                <Textarea name="text-post" v-model="inputText" rows="5" class="w-full pr-14 resize-none"
-                    placeholder="Que esta acontecendo..." @keyup="handleEventCurrentLength"
-                    @blur="handleEventCurrentLength" />
-            </div>
-
-            <div :class="clsx(`flex justify-end`, currentLength > 150 ? 'text-red-600' : 'text-white')">
-                {{ currentLength }} / {{ maxLength }}
-            </div>
+        <div class="w-full h-[200px] flex items-center p-4 gap-4 bg-gray-700 bg-[url('https://picsum.photos/1000/1000?grayscale&blur=9')]">
+            <Avatar :image=userProfile?.avatar_url shape="circle" class="w-auto h-auto max-w-[130px]" />
+            <h4 class="text-2xl">{{ userProfile?.full_name }}</h4>
+            <h5 class="text-sm text-gray-300">{{ dataPosts?.length || 0 }} Posts</h5>
         </div>
         <div class="overflow-y-auto flex-1 p-4 flex-col mt-10">
+            <div class="flex ">
+
+            </div>
             <transition-group name="p-message" tag="div">
                 <div class="mt-10" v-for="(item, index) in dataPosts" :key="index">
-                    <Card>
-                        <template #title>
+                    <Card :class="clsx(`transition-all border border-red-100/[0] `,  (!item?.is_public && item?.user_id === user?.id) && 'border border-red-400' )" >
+                        <template #title >
                             <div class="flex justify-between">
                                 <div class="flex gap-4 items-center">
                                     <Icon v-if="!item?.is_user_avatar" name="teenyicons:user-circle-outline" size="40" />
@@ -221,14 +212,28 @@ watch(user,  () => {
                                         class="rounded-full" />
                                     <span class="text-base">@{{ item?.is_user_username }}</span>
                                 </div>
-                                <div class="flex gap-4 items-center">
-                                    <Icon name="entypo:eye-with-line" size="24"
-                                        class="transition-all cursor-pointer hover:text-red-600"
-                                        @click="hidenShowPost(item)" v-if="item?.is_public && item?.user_id === user?.id"/>
-
+                                <div class="flex items-center gap-4">
                                     <Icon name="mdi:trash-outline" size="24"
-                                        class="transition-all cursor-pointer hover:text-red-600"
-                                        @click="confirm1(item?.id)"  v-if="item?.user_id === user?.id"/>
+                                            class="transition-all cursor-pointer hover:text-red-600" @click="confirm1(item?.id)"
+                                            v-if="item?.user_id === user?.id" />
+                                    <Icon name="mdi:pen" size="24"
+                                        @click="editPost(item?.id)"
+                                            class="transition-all cursor-pointer hover:text-red-600"
+                                            v-if="item?.user_id === user?.id" />
+                                    <div
+                                        class="transition-all cursor-pointer hover:text-green-600 flex gap-2 items-center"
+                                        @click="hidenShowPost(item)" v-if="!item?.is_public && item?.user_id === user?.id"
+                                    >
+                                        <Icon name="entypo:eye" size="24"/>
+                                        <span class="text-xs">Publico</span>
+                                    </div>
+                                    <div
+                                        class="transition-all cursor-pointer hover:text-red-600 flex gap-2 items-center"
+                                        @click="hidenShowPost(item)" v-if="item?.is_public && item?.user_id === user?.id"
+                                    >
+                                        <Icon name="entypo:eye-with-line" size="24"      />
+                                        <span class="text-xs">Privado</span>
+                                    </div>
                                 </div>
                             </div>
                         </template>
@@ -259,6 +264,7 @@ watch(user,  () => {
                                         name="teenyicons:heart-solid" size="20"
                                         class="transition-all cursor-pointer hover:text-emerald-600"
                                         @click="like(item?.id)" />
+
                                 </div>
                             </div>
                         </template>
