@@ -1,10 +1,13 @@
 <script setup lang="ts" >
-import type { Database } from '~~/types/database.types'
-import type { Post } from '~~/types/post'
+
 import clsx from 'clsx';
 import { format } from 'date-fns';
 import { useConfirm } from "primevue/useconfirm";
 import { useToast } from "primevue/usetoast";
+
+import type { Post } from '~~/types/post'
+import Loading from '~/components/Loading.vue';
+import type { Database } from '~~/types/database.types'
 
 const toast = useToast();
 const confirm = useConfirm();
@@ -14,10 +17,7 @@ const userProfile = ref(user?.value?.user_metadata);
 const visible = ref(false);
 const editingPostId = ref("");
 
-const { auth } = useSupabaseClient();
-
-// let opcoes = { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' };
-// let formatoBrasileiro = new Intl.DateTimeFormat('pt-BR', opcoes);
+const isLoading = ref(Loading.methods);
 
 
 const maxLength = 150;
@@ -51,7 +51,7 @@ const like = async (index: string) => {
     try {
         if (index) {
 
-            currentLoading.value = true;
+            isLoading.value?.start();
 
             const currentLikes = dataPosts.value?.find(({ id }) => id === index)?.likes;
             const currentLike = currentLikes?.find(({ is_id_user }) => is_id_user === user?.value?.id);
@@ -66,7 +66,7 @@ const like = async (index: string) => {
                     .order('created_at')
                     .then(() => {
                         syncData();
-                        currentLoading.value = false;
+                        isLoading.value?.finish();
                         toast.add({ severity: 'info', summary: 'Like', detail: 'Like no post', life: 3000 });
                     })
             }
@@ -80,7 +80,7 @@ const like = async (index: string) => {
                         .then((ret) => {
                             if (!ret.data) return
                             syncData();
-                            currentLoading.value = false;
+                            isLoading.value?.finish();
                             toast.add({ severity: 'info', summary: 'Like', detail: 'Like removido do post', life: 3000 });
                         })
                 }
@@ -96,7 +96,7 @@ const like = async (index: string) => {
     } catch (error) {
         if(error instanceof Error)
         {
-            currentLoading.value = false;
+            isLoading.value?.finish();
             toast.add({ severity: 'error', summary: 'Erro Like', detail: error.message, life: 3000 });
         }
     }
@@ -111,13 +111,14 @@ const deletPost = async (index: string) => {
         .then((ret) => {
             if (!ret.data) return
             syncData();
-            currentLoading.value = false;
+            isLoading.value?.finish();
             toast.add({ severity: 'info', summary: 'Post', detail: 'Post removido!', life: 3000 });
         })
 }
 
 const hidenShowPost = async ({ id, is_public }:Post) => {
     if (!id) return
+    isLoading.value?.start();
     await client.from('posts')
         .update({ is_public: !is_public })
         .match({ id: id })
@@ -125,17 +126,18 @@ const hidenShowPost = async ({ id, is_public }:Post) => {
         .then((ret) => {
             if (!ret.data) return
             syncData();
-            currentLoading.value = false;
+            isLoading.value?.finish();
             toast.add({ severity: 'info', summary: 'Post', detail: `Mudado para um post ${!is_public ? 'publicdo' : 'privado'}!`, life: 3000 });
         })
 }
 
 const syncData = async () => {
+    isLoading.value?.start();
     await client.from('posts')
         .select('*,likes(*)')
         .eq("is_delet", false)
         .order('created_at')
-        .then((ret) => (dataPosts.value = ret.data || [], currentLoading.value = false))
+        .then((ret) => (dataPosts.value = ret.data || [], isLoading.value?.finish()))
 }
 
 const editPost = async (index: string) => {
@@ -155,6 +157,7 @@ const saveEditPost = async (id: string) => {
     console.log(id)
     if(id)
     {
+        isLoading.value?.start();
         await client.from('posts')
         .update({ is_body: inputText.value })
         .match({ id: id })
@@ -185,17 +188,13 @@ watch(user,  () => {
                     @blur="handleEventCurrentLength" />
             <Button class="mt-3 gap-3 items-center w-auto p-4" @click="saveEditPost(editingPostId)">Salvar</Button>
         </Dialog>
-        <div :class="clsx(`transition-all  h-full container mx-auto flex items-center justify-center `, currentLoading ? 'fixed' : 'hidden')"
-            style="z-index: 44;">
-            <span class="text-2xl">
-                <Icon name="line-md:loading-twotone-loop" size="100"
-                    class="transition-all cursor-pointer hover:text-emerald-600" />
-            </span>
-        </div>
-        <div class="w-full h-[200px] flex items-center p-4 gap-4 bg-gray-700 bg-[url('https://picsum.photos/1000/1000?grayscale&blur=9')]">
+
+        <div class="w-full h-[200px] flex items-center p-4 gap-4 bg-gray-700 bg-[url('https://picsum.photos/3000/300?random=1&blur=9')]">
             <Avatar :image=userProfile?.avatar_url shape="circle" class="w-auto h-auto max-w-[130px]" />
-            <h4 class="text-2xl">{{ userProfile?.full_name }}</h4>
-            <h5 class="text-sm text-gray-300">{{ dataPosts?.length || 0 }} Posts</h5>
+            <div>
+                <h4 class="text-2xl">{{ userProfile?.full_name }}</h4>
+                <h5 class="text-sm text-gray-300">{{ dataPosts?.length || 0 }} Posts</h5>
+            </div>
         </div>
         <div class="overflow-y-auto flex-1 p-4 flex-col mt-10">
             <div class="flex ">
@@ -225,14 +224,14 @@ watch(user,  () => {
                                         @click="hidenShowPost(item)" v-if="!item?.is_public && item?.user_id === user?.id"
                                     >
                                         <Icon name="entypo:eye" size="24"/>
-                                        <span class="text-xs">Publico</span>
+                                        <!-- <span class="text-xs">Publico</span> -->
                                     </div>
                                     <div
                                         class="transition-all cursor-pointer hover:text-red-600 flex gap-2 items-center"
                                         @click="hidenShowPost(item)" v-if="item?.is_public && item?.user_id === user?.id"
                                     >
                                         <Icon name="entypo:eye-with-line" size="24"      />
-                                        <span class="text-xs">Privado</span>
+                                        <!-- <span class="text-xs">Privado</span> -->
                                     </div>
                                 </div>
                             </div>

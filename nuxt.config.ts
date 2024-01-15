@@ -25,8 +25,5 @@ export default defineNuxtConfig({
       baseUrl: process.env.BASE_URL || 'http://127.0.0.1'
     }
   },
-
-  css: ['~/assets/css/main.css'],
-
-
+  css: ['~/assets/css/main.css']
 })

@@ -1,11 +1,15 @@
 <script setup lang="ts" >
-import { format } from 'date-fns';
-import type { Database } from '~~/types/database.types'
-import type { Post } from '~~/types/post'
 import clsx from 'clsx';
-
 import { useConfirm } from "primevue/useconfirm";
+import { format } from 'date-fns';
 import { useToast } from "primevue/usetoast";
+
+import Loading from '~/components/Loading.vue';
+
+import type { Post } from '~~/types/post'
+import type { Database } from '~~/types/database.types'
+
+
 
 const toast = useToast();
 const confirm = useConfirm();
@@ -20,9 +24,12 @@ const maxLength = 150;
 const dataPosts = ref<Post[]>();
 const inputText = ref("");
 const currentLength = ref(0);
-const currentLoading = ref(true);
 
-const currentUser = ref(user.value);
+
+const isLoading = ref(Loading.methods);
+
+
+
 
 const confirm1 = (index: string) => {
     confirm.require({
@@ -39,7 +46,8 @@ const confirm1 = (index: string) => {
 const post = async () => {
     try {
         if (inputText.value && inputText.value.length <= 150) {
-            currentLoading.value = true;
+
+            isLoading.value?.start();
 
             const dados = {
                 is_body: inputText.value,
@@ -57,7 +65,7 @@ const post = async () => {
                 .then(() => {
                     syncData();
                     toast.add({ severity: 'success', summary: 'Post', detail: 'Postado', life: 3000 });
-                    currentLoading.value = false;
+                    isLoading.value?.finish();
                 })
 
             inputText.value = "";
@@ -69,7 +77,7 @@ const post = async () => {
     } catch (error) {
         if(error instanceof Error)
         {
-            currentLoading.value = false;
+            isLoading.value?.finish();
             toast.add({ severity: 'error', summary: 'Erro Post', detail: error.message, life: 3000 });
         }
     }
@@ -79,7 +87,7 @@ const like = async (index: string) => {
     try {
         if (index) {
 
-            currentLoading.value = true;
+            isLoading.value?.start();
 
             const currentLikes = dataPosts.value?.find(({ id }) => id === index)?.likes;
             const currentLike = currentLikes?.find(({ is_id_user }) => is_id_user === user?.value?.id);
@@ -94,7 +102,7 @@ const like = async (index: string) => {
                     .order('created_at')
                     .then(() => {
                         syncData();
-                        currentLoading.value = false;
+                        isLoading.value?.finish();
                         toast.add({ severity: 'info', summary: 'Like', detail: 'Like no post', life: 3000 });
                     })
             }
@@ -108,7 +116,7 @@ const like = async (index: string) => {
                         .then((ret) => {
                             if (!ret.data) return
                             syncData();
-                            currentLoading.value = false;
+                            isLoading.value?.finish();
                             toast.add({ severity: 'info', summary: 'Like', detail: 'Like removido do post', life: 3000 });
                         })
                 }
@@ -124,7 +132,7 @@ const like = async (index: string) => {
     } catch (error) {
         if(error instanceof Error)
         {
-            currentLoading.value = false;
+            isLoading.value?.finish();
             toast.add({ severity: 'error', summary: 'Erro Like', detail: error.message, life: 3000 });
         }
     }
@@ -136,6 +144,7 @@ const handleEventCurrentLength = () => {
 
 const deletPost = async (index: string) => {
     if (!index) return
+    isLoading.value?.start();
     await client.from('posts')
         .update({ is_delet: true })
         .match({ id: index })
@@ -143,13 +152,14 @@ const deletPost = async (index: string) => {
         .then((ret) => {
             if (!ret.data) return
             syncData();
-            currentLoading.value = false;
+            isLoading.value?.finish();
             toast.add({ severity: 'info', summary: 'Post', detail: 'Post removido!', life: 3000 });
         })
 }
 
 const hidenShowPost = async ({ id, is_public }:Post) => {
     if (!id) return
+    isLoading.value?.start();
     await client.from('posts')
         .update({ is_public: !is_public })
         .match({ id: id })
@@ -157,19 +167,20 @@ const hidenShowPost = async ({ id, is_public }:Post) => {
         .then((ret) => {
             if (!ret.data) return
             syncData();
-            currentLoading.value = false;
+            isLoading.value?.finish();
             toast.add({ severity: 'info', summary: 'Post', detail: `Mudado para um post ${!is_public ? 'publicdo' : 'privado'}!`, life: 3000 });
         })
 }
 
 
 const syncData = async () => {
+    isLoading.value?.start();
     await client.from('posts')
         .select('*,likes(*)')
         .eq("is_delet", false)
         .eq("is_public", true)
         .order('created_at')
-        .then((ret) => (dataPosts.value = ret.data || [], currentLoading.value = false, console.log(dataPosts)))
+        .then((ret) => (dataPosts.value = ret.data || [], isLoading.value?.finish(), console.log(dataPosts)))
 }
 
 watch(user,  () => {
@@ -182,15 +193,7 @@ watch(user,  () => {
 
 <template >
     <section class="overflow-hidden max-h-[93%] flex flex-col">
-        <div :class="clsx(`transition-all  h-full container mx-auto flex items-center justify-center `, currentLoading ? 'fixed' : 'hidden')"
-            style="z-index: 44;">
-            <span class="text-2xl">
-                <Icon name="line-md:loading-twotone-loop" size="100"
-                    class="transition-all cursor-pointer hover:text-emerald-600" />
-            </span>
-        </div>
-        <div :class="clsx(`transition-all blur-xl bg-stone-950/[0.7] h-full w-full `, currentLoading ? 'fixed' : 'hidden')"
-            style="z-index: 40;"></div>
+
         <div>
             <div class="relative mt-4" style="z-index: 1;">
                 <button @click="post"
@@ -209,7 +212,7 @@ watch(user,  () => {
                 {{ currentLength }} / {{ maxLength }}
             </div>
         </div>
-        <div class="overflow-y-auto flex-1 p-4 flex-col mt-10">
+        <div class="overflow-y-auto flex-1 p-4 flex-col ">
             <transition-group name="p-message" tag="div">
                 <div class="mt-10" v-for="(item, index) in dataPosts" :key="index">
                     <Card>
