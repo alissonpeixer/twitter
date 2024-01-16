@@ -22,7 +22,7 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      baseUrl: process.env.BASE_URL || 'https://twitter.alissonpeixer.com'
+      baseUrl: process.env.BASE_URL || 'http://127.0.0.1'
     }
   },
   css: ['~/assets/css/main.css']

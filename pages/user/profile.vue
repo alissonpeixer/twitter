@@ -136,6 +136,7 @@ const syncData = async () => {
     await client.from('posts')
         .select('*,likes(*)')
         .eq("is_delet", false)
+        .eq("user_id", user.value?.id)
         .order('created_at')
         .then((ret) => (dataPosts.value = ret.data || [], isLoading.value?.finish()))
 }

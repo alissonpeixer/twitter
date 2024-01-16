@@ -19,6 +19,12 @@ const items = ref([
         route: '/user/profile',
         icon:"teenyicons:user-circle-outline"
 
+    },
+    {
+        label: 'Users',
+        route: '/user/list',
+        icon:"teenyicons:heart-solid"
+
     }
 ]);
 
