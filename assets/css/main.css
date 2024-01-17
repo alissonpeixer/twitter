@@ -36,3 +36,11 @@
     --surface-900: 15 23 42;
     --surface-950: 3 6 23;
 }
+
+
+
+body {
+    background-image: url('/assets/grid.svg');
+    @apply bg-gray-800;
+    background-size: cover;
+}

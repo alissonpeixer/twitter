@@ -18,8 +18,8 @@ nuxtApp.hook("page:finish", () => {
 </script>
 <template>
   <Loading />
-  <main class="w-screen h-screen xl:p-4 container mx-auto overflow-hidden">
-    <Toast position="bottom-center"/>
+  <main class="w-screen h-screen xl:p-4 container mx-auto overflow-hidden ">
+    <Toast position="bottom-center" style="width: 70% !important;"/>
     <NuxtLoadingIndicator />
     <ConfirmDialog></ConfirmDialog>
     <AppHeader />

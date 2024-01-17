@@ -65,7 +65,6 @@ const post = async () => {
                 .then(() => {
                     syncData();
                     toast.add({ severity: 'success', summary: 'Post', detail: 'Postado', life: 3000 });
-                    isLoading.value?.finish();
                 })
 
             inputText.value = "";
@@ -87,7 +86,7 @@ const like = async (index: string) => {
     try {
         if (index) {
 
-            isLoading.value?.start();
+
 
             const currentLikes = dataPosts.value?.find(({ id }) => id === index)?.likes;
             const currentLike = currentLikes?.find(({ is_id_user }) => is_id_user === user?.value?.id);
@@ -102,8 +101,8 @@ const like = async (index: string) => {
                     .order('created_at')
                     .then(() => {
                         syncData();
-                        isLoading.value?.finish();
-                        toast.add({ severity: 'info', summary: 'Like', detail: 'Like no post', life: 3000 });
+
+                        toast.add({ severity: 'success', summary: 'Like', detail: 'Like no post', life: 3000 });
                     })
             }
             else {
@@ -116,8 +115,8 @@ const like = async (index: string) => {
                         .then((ret) => {
                             if (!ret.data) return
                             syncData();
-                            isLoading.value?.finish();
-                            toast.add({ severity: 'info', summary: 'Like', detail: 'Like removido do post', life: 3000 });
+
+                            toast.add({ severity: 'warn', summary: 'Like', detail: 'Like removido do post', life: 3000 });
                         })
                 }
                 else {
@@ -152,14 +151,13 @@ const deletPost = async (index: string) => {
         .then((ret) => {
             if (!ret.data) return
             syncData();
-            isLoading.value?.finish();
-            toast.add({ severity: 'info', summary: 'Post', detail: 'Post removido!', life: 3000 });
+            toast.add({ severity: 'warn', summary: 'Post', detail: 'Post removido!', life: 3000 });
         })
 }
 
 const hidenShowPost = async ({ id, is_public }:Post) => {
     if (!id) return
-    isLoading.value?.start();
+
     await client.from('posts')
         .update({ is_public: !is_public })
         .match({ id: id })
@@ -167,14 +165,12 @@ const hidenShowPost = async ({ id, is_public }:Post) => {
         .then((ret) => {
             if (!ret.data) return
             syncData();
-            isLoading.value?.finish();
             toast.add({ severity: 'info', summary: 'Post', detail: `Mudado para um post ${!is_public ? 'publicdo' : 'privado'}!`, life: 3000 });
         })
 }
 
 
 const syncData = async () => {
-    isLoading.value?.start();
     await client.from('posts')
         .select('*,likes(*)')
         .eq("is_delet", false)
