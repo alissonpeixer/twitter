@@ -6,6 +6,7 @@ export default defineNuxtConfig({
     'nuxt-icon',
     "@nuxt/image"
   ],
+  extends: ['nuxt-emoji'],
   primevue: {
     importPT: { as: 'Lara', from: __dirname+'/presets/lara/' },
     cssLayerOrder: 'tailwind-base, primevue,  tailwind-utilities',
@@ -21,11 +22,8 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      baseUrl: process.env.BASE_URL || 'http://127.0.0.1:3000'
+      baseUrl: process.env.BASE_URL || 'https://twitter.alissonpeixer.com'
     }
   },
-
-  css: ['~/assets/css/main.css'],
-
-
+  css: ['~/assets/css/main.css']
 })

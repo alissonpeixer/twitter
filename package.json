@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "nuxt build",
+    "build": "nuxt build --hostname 0 --port 8000",
     "dev": "nuxt dev --host --port 80",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "clsx": "^2.1.0",
+    "date-fns": "^3.1.0",
     "primevue": "^3.45.0"
   }
 }

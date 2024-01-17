@@ -10,6 +10,7 @@
     @tailwind utilities;
 }
 
+
 :root {
     --primary-50: 236 253 245;
     --primary-100: 209 250 229;
@@ -34,4 +35,12 @@
     --surface-800: 30 41 59;
     --surface-900: 15 23 42;
     --surface-950: 3 6 23;
+}
+
+
+
+body {
+    background-image: url('/assets/grid.svg');
+    @apply bg-gray-800;
+    background-size: cover;
 }
